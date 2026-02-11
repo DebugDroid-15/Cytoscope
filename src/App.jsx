@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Microscope, Brain, TrendingUp, ChevronDown, X, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { Microscope, Brain, TrendingUp, ChevronDown, X, Play, Pause, Volume2, VolumeX, Zap } from 'lucide-react';
 import { LineChart, Line, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import * as THREE from 'three';
 
 // ========================
 // COMPONENT: Particle Canvas Hero
@@ -1085,6 +1086,466 @@ const MorphometricData = () => {
 };
 
 // ========================
+// COMPONENT: 3D Cell Nucleus Visualization
+// ========================
+const Cell3D = () => {
+  const containerRef = useRef(null);
+  const sceneRef = useRef(null);
+  const rendererRef = useRef(null);
+  const cellRef = useRef(null);
+  const [isRotating, setIsRotating] = useState(true);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    // Scene setup
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0f172a);
+    sceneRef.current = scene;
+
+    const camera = new THREE.PerspectiveCamera(75, containerRef.current.clientWidth / containerRef.current.clientHeight, 0.1, 1000);
+    camera.position.z = 3;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+    renderer.shadowMap.enabled = true;
+    containerRef.current.appendChild(renderer.domElement);
+    rendererRef.current = renderer;
+
+    // Lighting
+    const light1 = new THREE.PointLight(0x06b6d4, 1, 100);
+    light1.position.set(5, 5, 5);
+    light1.castShadow = true;
+    scene.add(light1);
+
+    const light2 = new THREE.PointLight(0x14b8a6, 0.8, 100);
+    light2.position.set(-5, -5, 5);
+    scene.add(light2);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambientLight);
+
+    // Create cell nucleus
+    const nucleusGeometry = new THREE.SphereGeometry(1, 32, 32);
+    const nucleusMaterial = new THREE.MeshStandardMaterial({
+      color: 0x06b6d4,
+      emissive: 0x06b6d4,
+      emissiveIntensity: 0.3,
+      metalness: 0.4,
+      roughness: 0.6,
+    });
+    const nucleus = new THREE.Mesh(nucleusGeometry, nucleusMaterial);
+    nucleus.castShadow = true;
+    nucleus.receiveShadow = true;
+    scene.add(nucleus);
+    cellRef.current = nucleus;
+
+    // Add nuclear particles (chromatin)
+    const particleGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+    for (let i = 0; i < 40; i++) {
+      const particleMaterial = new THREE.MeshStandardMaterial({
+        color: new THREE.Color().setHSL(Math.random() * 0.2 + 0.4, 0.8, 0.5),
+        emissive: new THREE.Color().setHSL(Math.random() * 0.2 + 0.4, 0.8, 0.3),
+        metalness: 0.3,
+        roughness: 0.7,
+      });
+      const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+      particle.position.set(
+        (Math.random() - 0.5) * 1.8,
+        (Math.random() - 0.5) * 1.8,
+        (Math.random() - 0.5) * 1.8
+      );
+      particle.castShadow = true;
+      nucleus.add(particle);
+    }
+
+    // Add nucleus outline
+    const outlineGeometry = new THREE.SphereGeometry(1.05, 32, 32);
+    const outlineMaterial = new THREE.MeshBasicMaterial({
+      color: 0x06b6d4,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.3,
+    });
+    const outline = new THREE.Mesh(outlineGeometry, outlineMaterial);
+    scene.add(outline);
+
+    // Animation loop
+    const animate = () => {
+      requestAnimationFrame(animate);
+
+      if (isRotating && nucleus) {
+        nucleus.rotation.x += 0.001;
+        nucleus.rotation.y += 0.002;
+      }
+
+      // Update outline rotation to match nucleus
+      outline.rotation.copy(nucleus.rotation);
+
+      renderer.render(scene, camera);
+    };
+
+    animate();
+
+    // Handle window resize
+    const handleResize = () => {
+      if (!containerRef.current) return;
+      const width = containerRef.current.clientWidth;
+      const height = containerRef.current.clientHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (containerRef.current && renderer.domElement.parentNode === containerRef.current) {
+        containerRef.current.removeChild(renderer.domElement);
+      }
+      renderer.dispose();
+    };
+  }, [isRotating]);
+
+  return (
+    <section className="py-20 px-4 relative z-20">
+      <ScientificHUD title="3D Cell Nucleus" subtitle="🧬 Interactive Cellular Visualization" />
+      <div className="max-w-4xl mx-auto mt-12">
+        <div className="glass-card rounded-2xl overflow-hidden">
+          <div ref={containerRef} style={{ width: '100%', height: '400px' }} />
+          <div className="p-6 bg-slate-800/30 border-t border-cyan-500/20">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-cyan-400 font-semibold mb-2">Nuclear Structure</p>
+                <p className="text-gray-300 text-sm">Central cell nucleus containing chromatin and genetic material. Blue particles represent DNA-protein complexes.</p>
+              </div>
+              <motion.button
+                onClick={() => setIsRotating(!isRotating)}
+                className="sci-button"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {isRotating ? <Pause size={20} /> : <Play size={20} />}
+              </motion.button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ========================
+// COMPONENT: 3D DNA Helix Visualization
+// ========================
+const DNAHelix3D = () => {
+  const containerRef = useRef(null);
+  const sceneRef = useRef(null);
+  const rendererRef = useRef(null);
+  const helixRef = useRef(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    // Scene setup
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0f172a);
+    sceneRef.current = scene;
+
+    const camera = new THREE.PerspectiveCamera(75, containerRef.current.clientWidth / containerRef.current.clientHeight, 0.1, 1000);
+    camera.position.z = 4;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+    containerRef.current.appendChild(renderer.domElement);
+    rendererRef.current = renderer;
+
+    // Lighting
+    const light = new THREE.PointLight(0x14b8a6, 1.2, 100);
+    light.position.set(5, 5, 5);
+    scene.add(light);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+
+    // Create DNA Helix
+    const group = new THREE.Group();
+    helixRef.current = group;
+    scene.add(group);
+
+    // Create two strands
+    const strandGeometry = new THREE.TubeGeometry(
+      new THREE.LineCurve3(new THREE.Vector3(0, -2, 0), new THREE.Vector3(0, 2, 0)),
+      20,
+      0.08,
+      8
+    );
+
+    const strandMaterial1 = new THREE.MeshStandardMaterial({
+      color: 0x06b6d4,
+      emissive: 0x06b6d4,
+      emissiveIntensity: 0.4,
+      metalness: 0.5,
+      roughness: 0.5,
+    });
+
+    const strandMaterial2 = new THREE.MeshStandardMaterial({
+      color: 0x14b8a6,
+      emissive: 0x14b8a6,
+      emissiveIntensity: 0.4,
+      metalness: 0.5,
+      roughness: 0.5,
+    });
+
+    // Create helix points
+    const points = [];
+    for (let i = 0; i < 100; i++) {
+      const t = (i / 100) * 4 * Math.PI;
+      const y = (i / 100) * 4 - 2;
+      const x = Math.cos(t) * 0.5;
+      const z = Math.sin(t) * 0.5;
+      points.push(new THREE.Vector3(x, y, z));
+    }
+
+    const curve = new THREE.CatmullRomCurve3(points);
+    const tubeGeometry = new THREE.TubeGeometry(curve, 50, 0.1, 8);
+
+    const helix = new THREE.Mesh(tubeGeometry, strandMaterial1);
+    helix.castShadow = true;
+    helix.receiveShadow = true;
+    group.add(helix);
+
+    // Add base pairs (rungs)
+    const rungGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1.2, 8);
+    const rungMaterial = new THREE.MeshStandardMaterial({
+      color: 0xf97316,
+      emissive: 0xf97316,
+      emissiveIntensity: 0.3,
+    });
+
+    for (let i = 0; i < 20; i++) {
+      const t = (i / 20) * 4 * Math.PI;
+      const y = (i / 20) * 4 - 2;
+      const x = Math.cos(t) * 0.5;
+      const z = Math.sin(t) * 0.5;
+
+      const rung = new THREE.Mesh(rungGeometry, rungMaterial);
+      rung.position.set(x, y, z);
+      rung.rotation.z = t;
+      group.add(rung);
+    }
+
+    // Animation loop
+    const animate = () => {
+      requestAnimationFrame(animate);
+      if (group) {
+        group.rotation.z += 0.005;
+        group.rotation.x += 0.002;
+      }
+      renderer.render(scene, camera);
+    };
+
+    animate();
+
+    // Handle window resize
+    const handleResize = () => {
+      if (!containerRef.current) return;
+      const width = containerRef.current.clientWidth;
+      const height = containerRef.current.clientHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (containerRef.current && renderer.domElement.parentNode === containerRef.current) {
+        containerRef.current.removeChild(renderer.domElement);
+      }
+      renderer.dispose();
+    };
+  }, []);
+
+  return (
+    <section className="py-20 px-4 relative z-20">
+      <ScientificHUD title="3D DNA Double Helix" subtitle="🧪 Molecular Structure Visualization" />
+      <div className="max-w-4xl mx-auto mt-12">
+        <div className="glass-card rounded-2xl overflow-hidden">
+          <div ref={containerRef} style={{ width: '100%', height: '400px' }} />
+          <div className="p-6 bg-slate-800/30 border-t border-cyan-500/20">
+            <p className="text-cyan-400 font-semibold mb-2">The Double Helix Structure</p>
+            <p className="text-gray-300 text-sm">Watson-Crick model showing the iconic double helix. The cyan and teal strands represent sugar-phosphate backbone, while orange rungs represent hydrogen-bonded base pairs (A-T and G-C).</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ========================
+// COMPONENT: 3D Protein Folding Simulator
+// ========================
+const ProteinFolding3D = () => {
+  const containerRef = useRef(null);
+  const sceneRef = useRef(null);
+  const rendererRef = useRef(null);
+  const proteinRef = useRef(null);
+  const [temperature, setTemperature] = useState(50);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    // Scene setup
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0f172a);
+    sceneRef.current = scene;
+
+    const camera = new THREE.PerspectiveCamera(75, containerRef.current.clientWidth / containerRef.current.clientHeight, 0.1, 1000);
+    camera.position.z = 5;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+    containerRef.current.appendChild(renderer.domElement);
+    rendererRef.current = renderer;
+
+    // Lighting
+    const light = new THREE.PointLight(0x06b6d4, 1, 100);
+    light.position.set(5, 5, 5);
+    scene.add(light);
+
+    const light2 = new THREE.PointLight(0xf97316, 0.8, 100);
+    light2.position.set(-5, -5, 5);
+    scene.add(light2);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambientLight);
+
+    // Create protein structure (simplified alpha helix)
+    const group = new THREE.Group();
+    proteinRef.current = group;
+    scene.add(group);
+
+    // Create amino acid residues along a helix
+    const residues = [];
+    for (let i = 0; i < 50; i++) {
+      const t = (i / 50) * Math.PI * 4;
+      const y = (i / 50) * 3 - 1.5;
+      const x = Math.cos(t) * 0.8;
+      const z = Math.sin(t) * 0.8;
+
+      const sphereGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+      const color = new THREE.Color().setHSL((i / 50) * 0.6, 0.8, 0.5);
+      const material = new THREE.MeshStandardMaterial({
+        color,
+        emissive: color,
+        emissiveIntensity: 0.3,
+        metalness: 0.4,
+        roughness: 0.6,
+      });
+
+      const sphere = new THREE.Mesh(sphereGeometry, material);
+      sphere.position.set(x, y, z);
+      sphere.castShadow = true;
+      group.add(sphere);
+      residues.push({ sphere, baseY: y, baseX: x, baseZ: z, index: i });
+    }
+
+    // Connect residues with bonds
+    const bondMaterial = new THREE.LineBasicMaterial({ color: 0x14b8a6, transparent: true, opacity: 0.5 });
+    for (let i = 0; i < residues.length - 1; i++) {
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array([
+        residues[i].sphere.position.x,
+        residues[i].sphere.position.y,
+        residues[i].sphere.position.z,
+        residues[i + 1].sphere.position.x,
+        residues[i + 1].sphere.position.y,
+        residues[i + 1].sphere.position.z,
+      ]);
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const line = new THREE.Line(geometry, bondMaterial);
+      group.add(line);
+    }
+
+    // Animation loop
+    let time = 0;
+    const animate = () => {
+      requestAnimationFrame(animate);
+      time += 0.01;
+
+      // Temperature-based oscillation
+      const scale = 1 + (temperature / 100) * 0.3;
+      residues.forEach((res, idx) => {
+        const wobble = Math.sin(time + idx * 0.2) * (temperature / 100) * 0.15;
+        res.sphere.position.x = res.baseX + wobble;
+        res.sphere.position.z = res.baseZ + Math.cos(time + idx * 0.2) * (temperature / 100) * 0.1;
+      });
+
+      group.rotation.y += 0.003;
+
+      renderer.render(scene, camera);
+    };
+
+    animate();
+
+    // Handle window resize
+    const handleResize = () => {
+      if (!containerRef.current) return;
+      const width = containerRef.current.clientWidth;
+      const height = containerRef.current.clientHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (containerRef.current && renderer.domElement.parentNode === containerRef.current) {
+        containerRef.current.removeChild(renderer.domElement);
+      }
+      renderer.dispose();
+    };
+  }, [temperature]);
+
+  return (
+    <section className="py-20 px-4 relative z-20">
+      <ScientificHUD title="3D Protein Folding" subtitle="⚛️ Dynamic Molecular Dynamics Simulation" />
+      <div className="max-w-4xl mx-auto mt-12">
+        <div className="glass-card rounded-2xl overflow-hidden">
+          <div ref={containerRef} style={{ width: '100%', height: '400px' }} />
+          <div className="p-6 bg-slate-800/30 border-t border-cyan-500/20">
+            <div className="space-y-4">
+              <div>
+                <p className="text-cyan-400 font-semibold mb-2">Protein Folding Simulation</p>
+                <p className="text-gray-300 text-sm mb-4">Interactive model showing how temperature affects protein structure. Higher temperatures cause increased molecular vibration.</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <label className="text-gray-400 text-sm min-w-fit">Temperature:</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={temperature}
+                  onChange={(e) => setTemperature(Number(e.target.value))}
+                  className="flex-1 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                />
+                <span className="text-cyan-400 font-semibold min-w-12 text-right">{temperature}°C</span>
+              </div>
+              <p className="text-gray-400 text-xs">Residues are colored by position. Observe how increased temperature causes greater molecular vibration.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ========================
 // COMPONENT: Research Papers
 // ========================
 const ResearchPapers = () => {
@@ -1589,6 +2050,13 @@ export default function App() {
 
       {/* MORPHOMETRIC DATA */}
       <MorphometricData />
+
+      {/* 3D SIMULATIONS */}
+      <Cell3D />
+
+      <DNAHelix3D />
+
+      <ProteinFolding3D />
 
       {/* RESEARCH PAPERS */}
       <ResearchPapers />
