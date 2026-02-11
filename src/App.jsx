@@ -1094,6 +1094,8 @@ const Cell3D = () => {
   const rendererRef = useRef(null);
   const cellRef = useRef(null);
   const [isRotating, setIsRotating] = useState(true);
+  const mouseRef = useRef({ x: 0, y: 0 });
+  const rotationRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -1108,46 +1110,41 @@ const Cell3D = () => {
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
-    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.enabled = false;
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // Lighting
-    const light1 = new THREE.PointLight(0x06b6d4, 1, 100);
+    // Lighting (simplified)
+    const light1 = new THREE.PointLight(0x06b6d4, 0.8, 100);
     light1.position.set(5, 5, 5);
-    light1.castShadow = true;
     scene.add(light1);
 
-    const light2 = new THREE.PointLight(0x14b8a6, 0.8, 100);
+    const light2 = new THREE.PointLight(0x14b8a6, 0.6, 100);
     light2.position.set(-5, -5, 5);
     scene.add(light2);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
 
-    // Create cell nucleus
-    const nucleusGeometry = new THREE.SphereGeometry(1, 32, 32);
-    const nucleusMaterial = new THREE.MeshStandardMaterial({
+    // Create cell nucleus (lower poly)
+    const nucleusGeometry = new THREE.SphereGeometry(1, 24, 24);
+    const nucleusMaterial = new THREE.MeshPhongMaterial({
       color: 0x06b6d4,
       emissive: 0x06b6d4,
-      emissiveIntensity: 0.3,
-      metalness: 0.4,
-      roughness: 0.6,
+      emissiveIntensity: 0.25,
+      shininess: 30,
     });
     const nucleus = new THREE.Mesh(nucleusGeometry, nucleusMaterial);
-    nucleus.castShadow = true;
-    nucleus.receiveShadow = true;
     scene.add(nucleus);
     cellRef.current = nucleus;
 
-    // Add nuclear particles (chromatin)
-    const particleGeometry = new THREE.SphereGeometry(0.05, 8, 8);
-    for (let i = 0; i < 40; i++) {
-      const particleMaterial = new THREE.MeshStandardMaterial({
+    // Add nuclear particles (chromatin) - fewer particles
+    const particleGeometry = new THREE.SphereGeometry(0.05, 6, 6);
+    for (let i = 0; i < 15; i++) {
+      const particleMaterial = new THREE.MeshPhongMaterial({
         color: new THREE.Color().setHSL(Math.random() * 0.2 + 0.4, 0.8, 0.5),
         emissive: new THREE.Color().setHSL(Math.random() * 0.2 + 0.4, 0.8, 0.3),
-        metalness: 0.3,
-        roughness: 0.7,
+        shininess: 20,
       });
       const particle = new THREE.Mesh(particleGeometry, particleMaterial);
       particle.position.set(
@@ -1155,12 +1152,11 @@ const Cell3D = () => {
         (Math.random() - 0.5) * 1.8,
         (Math.random() - 0.5) * 1.8
       );
-      particle.castShadow = true;
       nucleus.add(particle);
     }
 
-    // Add nucleus outline
-    const outlineGeometry = new THREE.SphereGeometry(1.05, 32, 32);
+    // Add nucleus outline (lower poly)
+    const outlineGeometry = new THREE.SphereGeometry(1.05, 24, 24);
     const outlineMaterial = new THREE.MeshBasicMaterial({
       color: 0x06b6d4,
       wireframe: true,
@@ -1170,16 +1166,30 @@ const Cell3D = () => {
     const outline = new THREE.Mesh(outlineGeometry, outlineMaterial);
     scene.add(outline);
 
+    // Mouse tracking
+    const handleMouseMove = (e) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      mouseRef.current.x = (e.clientX - rect.left) / rect.width - 0.5;
+      mouseRef.current.y = (e.clientY - rect.top) / rect.height - 0.5;
+    };
+
+    containerRef.current.addEventListener('mousemove', handleMouseMove);
+
     // Animation loop
     const animate = () => {
       requestAnimationFrame(animate);
 
       if (isRotating && nucleus) {
-        nucleus.rotation.x += 0.001;
-        nucleus.rotation.y += 0.002;
+        rotationRef.current.x += 0.001;
+        rotationRef.current.y += 0.002;
+        nucleus.rotation.x = rotationRef.current.x + mouseRef.current.y * 0.5;
+        nucleus.rotation.y = rotationRef.current.y + mouseRef.current.x * 0.5;
+      } else if (nucleus) {
+        nucleus.rotation.x = mouseRef.current.y * 1.5;
+        nucleus.rotation.y = mouseRef.current.x * 1.5;
       }
 
-      // Update outline rotation to match nucleus
       outline.rotation.copy(nucleus.rotation);
 
       renderer.render(scene, camera);
@@ -1201,8 +1211,11 @@ const Cell3D = () => {
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      if (containerRef.current && renderer.domElement.parentNode === containerRef.current) {
-        containerRef.current.removeChild(renderer.domElement);
+      if (containerRef.current) {
+        containerRef.current.removeEventListener('mousemove', handleMouseMove);
+        if (renderer.domElement.parentNode === containerRef.current) {
+          containerRef.current.removeChild(renderer.domElement);
+        }
       }
       renderer.dispose();
     };
@@ -1244,6 +1257,8 @@ const DNAHelix3D = () => {
   const sceneRef = useRef(null);
   const rendererRef = useRef(null);
   const helixRef = useRef(null);
+  const mouseRef = useRef({ x: 0, y: 0 });
+  const rotationRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -1261,12 +1276,12 @@ const DNAHelix3D = () => {
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // Lighting
-    const light = new THREE.PointLight(0x14b8a6, 1.2, 100);
+    // Lighting (simplified)
+    const light = new THREE.PointLight(0x14b8a6, 0.9, 100);
     light.position.set(5, 5, 5);
     scene.add(light);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
 
     // Create DNA Helix
@@ -1282,20 +1297,18 @@ const DNAHelix3D = () => {
       8
     );
 
-    const strandMaterial1 = new THREE.MeshStandardMaterial({
+    const strandMaterial1 = new THREE.MeshPhongMaterial({
       color: 0x06b6d4,
       emissive: 0x06b6d4,
-      emissiveIntensity: 0.4,
-      metalness: 0.5,
-      roughness: 0.5,
+      emissiveIntensity: 0.3,
+      shininess: 25,
     });
 
-    const strandMaterial2 = new THREE.MeshStandardMaterial({
+    const strandMaterial2 = new THREE.MeshPhongMaterial({
       color: 0x14b8a6,
       emissive: 0x14b8a6,
-      emissiveIntensity: 0.4,
-      metalness: 0.5,
-      roughness: 0.5,
+      emissiveIntensity: 0.3,
+      shininess: 25,
     });
 
     // Create helix points
@@ -1336,12 +1349,24 @@ const DNAHelix3D = () => {
       group.add(rung);
     }
 
+    // Mouse tracking
+    const handleMouseMove = (e) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      mouseRef.current.x = (e.clientX - rect.left) / rect.width - 0.5;
+      mouseRef.current.y = (e.clientY - rect.top) / rect.height - 0.5;
+    };
+
+    containerRef.current.addEventListener('mousemove', handleMouseMove);
+
     // Animation loop
     const animate = () => {
       requestAnimationFrame(animate);
       if (group) {
-        group.rotation.z += 0.005;
-        group.rotation.x += 0.002;
+        rotationRef.current.z += 0.005;
+        rotationRef.current.x += 0.002;
+        group.rotation.z = rotationRef.current.z + mouseRef.current.x * 0.5;
+        group.rotation.x = rotationRef.current.x + mouseRef.current.y * 0.5;
       }
       renderer.render(scene, camera);
     };
@@ -1362,8 +1387,11 @@ const DNAHelix3D = () => {
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      if (containerRef.current && renderer.domElement.parentNode === containerRef.current) {
-        containerRef.current.removeChild(renderer.domElement);
+      if (containerRef.current) {
+        containerRef.current.removeEventListener('mousemove', handleMouseMove);
+        if (renderer.domElement.parentNode === containerRef.current) {
+          containerRef.current.removeChild(renderer.domElement);
+        }
       }
       renderer.dispose();
     };
@@ -1393,6 +1421,8 @@ const ProteinFolding3D = () => {
   const sceneRef = useRef(null);
   const rendererRef = useRef(null);
   const proteinRef = useRef(null);
+  const mouseRef = useRef({ x: 0, y: 0 });
+  const rotationRef = useRef({ y: 0 });
   const [temperature, setTemperature] = useState(50);
 
   useEffect(() => {
@@ -1411,16 +1441,16 @@ const ProteinFolding3D = () => {
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // Lighting
-    const light = new THREE.PointLight(0x06b6d4, 1, 100);
+    // Lighting (simplified)
+    const light = new THREE.PointLight(0x06b6d4, 0.8, 100);
     light.position.set(5, 5, 5);
     scene.add(light);
 
-    const light2 = new THREE.PointLight(0xf97316, 0.8, 100);
+    const light2 = new THREE.PointLight(0xf97316, 0.6, 100);
     light2.position.set(-5, -5, 5);
     scene.add(light2);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
 
     // Create protein structure (simplified alpha helix)
@@ -1428,22 +1458,21 @@ const ProteinFolding3D = () => {
     proteinRef.current = group;
     scene.add(group);
 
-    // Create amino acid residues along a helix
+    // Create amino acid residues along a helix (fewer residues)
     const residues = [];
-    for (let i = 0; i < 50; i++) {
-      const t = (i / 50) * Math.PI * 4;
-      const y = (i / 50) * 3 - 1.5;
+    for (let i = 0; i < 30; i++) {
+      const t = (i / 30) * Math.PI * 4;
+      const y = (i / 30) * 3 - 1.5;
       const x = Math.cos(t) * 0.8;
       const z = Math.sin(t) * 0.8;
 
-      const sphereGeometry = new THREE.SphereGeometry(0.15, 16, 16);
-      const color = new THREE.Color().setHSL((i / 50) * 0.6, 0.8, 0.5);
-      const material = new THREE.MeshStandardMaterial({
+      const sphereGeometry = new THREE.SphereGeometry(0.15, 12, 12);
+      const color = new THREE.Color().setHSL((i / 30) * 0.6, 0.8, 0.5);
+      const material = new THREE.MeshPhongMaterial({
         color,
         emissive: color,
-        emissiveIntensity: 0.3,
-        metalness: 0.4,
-        roughness: 0.6,
+        emissiveIntensity: 0.25,
+        shininess: 20,
       });
 
       const sphere = new THREE.Mesh(sphereGeometry, material);
@@ -1470,6 +1499,16 @@ const ProteinFolding3D = () => {
       group.add(line);
     }
 
+    // Mouse tracking
+    const handleMouseMove = (e) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      mouseRef.current.x = (e.clientX - rect.left) / rect.width - 0.5;
+      mouseRef.current.y = (e.clientY - rect.top) / rect.height - 0.5;
+    };
+
+    containerRef.current.addEventListener('mousemove', handleMouseMove);
+
     // Animation loop
     let time = 0;
     const animate = () => {
@@ -1477,14 +1516,15 @@ const ProteinFolding3D = () => {
       time += 0.01;
 
       // Temperature-based oscillation
-      const scale = 1 + (temperature / 100) * 0.3;
       residues.forEach((res, idx) => {
         const wobble = Math.sin(time + idx * 0.2) * (temperature / 100) * 0.15;
         res.sphere.position.x = res.baseX + wobble;
         res.sphere.position.z = res.baseZ + Math.cos(time + idx * 0.2) * (temperature / 100) * 0.1;
       });
 
-      group.rotation.y += 0.003;
+      rotationRef.current.y += 0.003;
+      group.rotation.y = rotationRef.current.y + mouseRef.current.x * 0.5;
+      group.rotation.x = mouseRef.current.y * 0.5;
 
       renderer.render(scene, camera);
     };
@@ -1505,8 +1545,11 @@ const ProteinFolding3D = () => {
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      if (containerRef.current && renderer.domElement.parentNode === containerRef.current) {
-        containerRef.current.removeChild(renderer.domElement);
+      if (containerRef.current) {
+        containerRef.current.removeEventListener('mousemove', handleMouseMove);
+        if (renderer.domElement.parentNode === containerRef.current) {
+          containerRef.current.removeChild(renderer.domElement);
+        }
       }
       renderer.dispose();
     };
