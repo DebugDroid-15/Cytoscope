@@ -110,6 +110,174 @@ const ParticleCanvasHero = () => {
 };
 
 // ========================
+// COMPONENT: Laboratory Background Animation
+// ========================
+const LabAnimation = () => {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const w = (canvas.width = window.innerWidth);
+    const h = (canvas.height = window.innerHeight);
+
+    // DNA Helix particles
+    const dnaParticles = Array.from({ length: 8 }, (_, i) => {
+      const t = (i / 8) * Math.PI * 2;
+      return {
+        baseY: (i / 8) * h,
+        amplitude: 80,
+        frequency: 0.02,
+        phase: t,
+        speed: 0.5 + Math.random() * 0.3,
+        particles: Array.from({ length: 6 }, () => ({
+          angle: Math.random() * Math.PI * 2,
+          radius: 15 + Math.random() * 10,
+        })),
+      };
+    });
+
+    const animate = () => {
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.02)';
+      ctx.fillRect(0, 0, w, h);
+
+      // Draw DNA helix structure
+      dnaParticles.forEach((dna) => {
+        dna.baseY += dna.speed;
+        if (dna.baseY > h + 100) dna.baseY = -100;
+
+        dna.particles.forEach((p, idx) => {
+          const x = (w / 2) + Math.sin(dna.baseY * dna.frequency + dna.phase) * dna.amplitude;
+          const y = dna.baseY + (idx - 3) * 30;
+
+          // Central strand
+          ctx.fillStyle = 'rgba(6, 182, 212, 0.15)';
+          ctx.beginPath();
+          ctx.arc(x, y, 4, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Outer helix points
+          const helix1X = x + Math.cos(p.angle + dna.baseY * 0.02) * p.radius;
+          const helix1Y = y + Math.sin(p.angle + dna.baseY * 0.02) * (p.radius * 0.6);
+
+          ctx.fillStyle = 'rgba(20, 184, 166, 0.08)';
+          ctx.beginPath();
+          ctx.arc(helix1X, helix1Y, 2, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Connection line
+          ctx.strokeStyle = 'rgba(6, 182, 212, 0.06)';
+          ctx.lineWidth = 0.5;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(helix1X, helix1Y);
+          ctx.stroke();
+        });
+      });
+
+      // Molecular dots floating
+      for (let i = 0; i < 5; i++) {
+        const x = (Math.sin(Date.now() * 0.0001 + i) * w * 0.4) + w / 2;
+        const y = (Math.cos(Date.now() * 0.00015 + i * 1.2) * h * 0.3) + h / 2;
+        
+        ctx.fillStyle = 'rgba(34, 211, 238, 0.1)';
+        ctx.beginPath();
+        ctx.arc(x + 150, y, 20, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = 'rgba(6, 182, 212, 0.15)';
+        ctx.beginPath();
+        ctx.arc(x + 150, y, 8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    const handleResize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="fixed top-0 left-0 w-full h-full pointer-events-none z-0"
+      style={{ opacity: 0.3 }}
+    />
+  );
+};
+
+// ========================
+// COMPONENT: Scientific HUD Overlay
+// ========================
+const ScientificHUD = ({ title, subtitle }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8 }}
+      className="relative z-10 text-center py-12"
+    >
+      <div className="relative inline-block">
+        {/* Scanning lines effect */}
+        <motion.div
+          className="absolute -top-4 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent"
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+        <motion.div
+          className="absolute -bottom-4 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-teal-500 to-transparent"
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 2, repeat: Infinity, delay: 1 }}
+        />
+
+        <h2 className="text-4xl font-bold text-center mb-2 relative z-10">{title}</h2>
+        {subtitle && <p className="text-center text-gray-400 text-sm sci-header">{subtitle}</p>}
+      </div>
+    </motion.div>
+  );
+};
+
+// ========================
+// COMPONENT: Lab Equipment Indicator
+// ========================
+const LabEquipmentIndicator = () => {
+  return (
+    <motion.div
+      className="fixed bottom-8 right-8 z-50"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 1 }}
+    >
+      <div className="glass-card p-4 text-xs sci-header">
+        <div className="flex items-center gap-2 mb-2">
+          <motion.div
+            className="w-2 h-2 rounded-full bg-cyan-500"
+            animate={{ scale: [1, 1.5, 1] }}
+            transition={{ duration: 1, repeat: Infinity }}
+          />
+          <span className="text-cyan-400">Lab Systems Active</span>
+        </div>
+        <div className="text-gray-500">
+          <p>Microscope: Ready</p>
+          <p>Scanner: Calibrated</p>
+          <p>AI Module: Online</p>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// ========================
 // COMPONENT: Timeline Cell Stream
 // ========================
 const TimelineCellStream = () => {
@@ -410,15 +578,15 @@ const VirtualMicroscope = () => {
   };
 
   return (
-    <section className="min-h-screen bg-gradient-dark py-20 px-4">
+    <section className="min-h-screen bg-gradient-dark py-20 px-4 relative z-20">
       <motion.div
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
-        className="max-w-4xl mx-auto"
+        className="max-w-4xl mx-auto relative z-10"
       >
-        <h2 className="text-4xl font-bold mb-2 text-center">Virtual Microscope</h2>
-        <p className="text-center text-gray-400 mb-12">Interactive cellular specimen analysis</p>
+        <ScientificHUD title="Virtual Microscope" subtitle="⚗️ Interactive Cellular Specimen Analysis" />
+        <div className="mb-12" />
 
         <div className="glass-card p-8">
           <div className="flex flex-col lg:flex-row gap-8">
@@ -649,15 +817,15 @@ const AIDiagnosticSimulator = () => {
   }, [isScanning, detections, scanLineRef.current]);
 
   return (
-    <section className="min-h-screen bg-gradient-dark py-20 px-4">
+    <section className="min-h-screen bg-gradient-dark py-20 px-4 relative z-20">
       <motion.div
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
-        className="max-w-4xl mx-auto"
+        className="max-w-4xl mx-auto relative z-10"
       >
-        <h2 className="text-4xl font-bold mb-2 text-center">AI Diagnostic Simulator</h2>
-        <p className="text-center text-gray-400 mb-12">Automated cellular anomaly detection system</p>
+        <ScientificHUD title="AI Diagnostic Simulator" subtitle="🔬 Automated Cellular Anomaly Detection System" />
+        <div className="mb-12" />
 
         <div className="glass-card p-8">
           <div className="grid md:grid-cols-2 gap-8">
@@ -782,15 +950,15 @@ const MorphometricData = () => {
   ];
 
   return (
-    <section className="min-h-screen bg-gradient-dark py-20 px-4">
+    <section className="min-h-screen bg-gradient-dark py-20 px-4 relative z-20">
       <motion.div
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
-        className="max-w-6xl mx-auto"
+        className="max-w-6xl mx-auto relative z-10"
       >
-        <h2 className="text-4xl font-bold mb-2 text-center">Morphometric Analysis</h2>
-        <p className="text-center text-gray-400 mb-12">3D cellular feature clustering and classification</p>
+        <ScientificHUD title="Morphometric Analysis" subtitle="📊 3D Cellular Feature Clustering & Classification" />
+        <div className="mb-12" />
 
         <div className="glass-card p-8">
           {/* Toggle */}
@@ -987,15 +1155,14 @@ const ResearchPapers = () => {
   };
 
   return (
-    <section className="min-h-screen bg-gradient-dark py-20 px-4">
+    <section className="min-h-screen bg-gradient-dark py-20 px-4 relative z-20">
       <motion.div
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
-        className="max-w-7xl mx-auto"
+        className="max-w-7xl mx-auto relative z-10"
       >
-        <h2 className="text-4xl font-bold mb-2 text-center">Research Foundation</h2>
-        <p className="text-center text-gray-400 mb-4">50 Landmark Research Papers</p>
+        <ScientificHUD title="Research Foundation" subtitle="📚 50 Landmark Breakthrough Papers" />
         <p className="text-center text-gray-500 text-sm mb-12">
           Comprehensive analysis of breakthrough publications shaping cytology and AI diagnostics
         </p>
@@ -1312,8 +1479,14 @@ export default function App() {
 
   return (
     <div className="bg-slate-900 text-white overflow-hidden">
+      {/* Laboratory Background Animation */}
+      <LabAnimation />
+      
+      {/* Lab Equipment Status */}
+      <LabEquipmentIndicator />
+
       {/* HERO SECTION */}
-      <section className="relative h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative h-screen flex items-center justify-center overflow-hidden z-20">
         <ParticleCanvasHero />
 
         {/* Hero Content */}
@@ -1363,7 +1536,7 @@ export default function App() {
       </section>
 
       {/* TIMELINE SECTION */}
-      <section id="timeline" className="relative min-h-screen bg-gradient-dark py-20 px-4 overflow-hidden">
+      <section id="timeline" className="relative min-h-screen bg-gradient-dark py-20 px-4 overflow-hidden z-20">
         {/* Cell Stream Background */}
         <div className="absolute inset-0 w-full h-full hidden md:block">
           <TimelineCellStream />
@@ -1375,10 +1548,8 @@ export default function App() {
           transition={{ duration: 0.8 }}
           className="max-w-6xl mx-auto relative z-10"
         >
-          <h2 className="text-4xl font-bold text-center mb-4">The Timeline</h2>
-          <p className="text-center text-gray-400 mb-16">
-            Four centuries of discovery and transformation
-          </p>
+          <ScientificHUD title="The Timeline" subtitle="⏱️ Four Centuries of Discovery & Transformation" />
+          <div className="mb-16" />
 
           <div className="space-y-20">
             {timelineEvents.map((event, index) => (
@@ -1423,23 +1594,38 @@ export default function App() {
       <ResearchPapers />
 
       {/* FOOTER */}
-      <footer className="bg-slate-900/50 border-t border-cyan-500/20 py-12 px-4">
+      <footer className="bg-slate-900/50 border-t border-cyan-500/20 py-12 px-4 relative z-20">
         <div className="max-w-6xl mx-auto text-center">
+          {/* Top scanning line */}
+          <motion.div
+            className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"
+            animate={{ opacity: [0.3, 1, 0.3] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+          
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             transition={{ duration: 0.6 }}
           >
-            <p className="sci-header text-cyan-400 mb-4">CYTOSCOPE</p>
+            <p className="sci-header text-cyan-400 mb-4">⚗️ CYTOSCOPE Research Lab</p>
             <p className="text-gray-400 max-w-2xl mx-auto mb-6">
               An immersive educational platform exploring the evolution of cytology from historical discovery to
               cutting-edge AI-driven diagnosis. Built to inspire the next generation of biomedical scientists.
             </p>
 
-            <div className="flex justify-center gap-6 text-gray-400 text-sm">
+            <div className="flex justify-center gap-6 text-gray-400 text-sm mb-4">
               <p>© 2026 CYTOSCOPE Initiative</p>
               <p>•</p>
               <p>Scientific Visualization Engine</p>
+            </div>
+            
+            <div className="flex justify-center gap-4 text-xs text-cyan-400/60">
+              <span>🔬 Lab Active</span>
+              <span>•</span>
+              <span>📊 Data Validated</span>
+              <span>•</span>
+              <span>✓ Verified</span>
             </div>
           </motion.div>
         </div>

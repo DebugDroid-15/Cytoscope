@@ -1,48 +1,172 @@
 @import "tailwindcss";
 
-@layer base {
-  body {
-    @apply bg-slate-900 text-white overflow-x-hidden;
+body {
+  background-color: #0f172a;
+  color: white;
+  overflow-x: hidden;
+}
+
+.glass-card {
+  backdrop-filter: blur(12px);
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgba(6, 182, 212, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  animation: shimmer 3s infinite;
+}
+
+.glow-effect {
+  box-shadow: 0 10px 15px -3px rgba(6, 182, 212, 0.5);
+}
+
+.sci-header {
+  font-family: monospace;
+  font-size: 0.875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sci-button {
+  padding: 0.5rem 1.5rem;
+  background: linear-gradient(to right, #06b6d4, #14b8a6);
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 300ms;
+  transform: translateZ(0);
+  border: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.sci-button:hover {
+  background: linear-gradient(to right, #22d3ee, #2dd4bf);
+  transform: scale(1.05);
+  box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.5);
+}
+
+.sci-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  animation: scan 2s infinite;
+}
+
+.sci-input {
+  background-color: rgba(30, 41, 59, 0.5);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  color: white;
+  transition: all;
+  font-size: inherit;
+}
+
+.sci-input::placeholder {
+  color: rgba(209, 213, 219, 0.6);
+}
+
+.sci-input:focus {
+  outline: none;
+  border-color: #06b6d4;
+  box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.3);
+}
+
+.lab-border {
+  border: 2px solid;
+  border-image: linear-gradient(135deg, #06b6d4, #14b8a6) 1;
+}
+
+/* Laboratory Animations */
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
   }
 }
 
-@layer components {
-  .glass-card {
-    @apply backdrop-blur-md bg-white/10 border border-white/20 rounded-xl;
+@keyframes scan {
+  0% {
+    left: -100%;
   }
-  
-  .glow-effect {
-    @apply shadow-lg shadow-cyan-500/50;
+  100% {
+    left: 100%;
   }
-  
-  .sci-header {
-    @apply font-mono text-sm tracking-wider uppercase;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
   }
-  
-  .sci-button {
-    @apply px-6 py-2 bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-cyan-500/50;
+  50% {
+    box-shadow: 0 0 30px rgba(6, 182, 212, 0.8);
   }
-  
-  .sci-input {
-    @apply bg-slate-800/50 backdrop-blur border border-cyan-500/30 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-cyan-500;
+}
+
+@keyframes dna-float {
+  0% {
+    transform: translateY(0px) rotateZ(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotateZ(180deg);
+  }
+  100% {
+    transform: translateY(0px) rotateZ(360deg);
   }
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
 }
 
 ::-webkit-scrollbar-track {
   background: rgba(15, 23, 42, 0.5);
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
   background: linear-gradient(to right, #06b6d4, #14b8a6);
-  border-radius: 4px;
+  border-radius: 10px;
+  border: 2px solid rgba(15, 23, 42, 0.8);
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(to right, #22d3ee, #2dd4bf);
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
 }
+
+/* Laboratory cursor effect */
+* {
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="2" fill="%2306b6d4"/><circle cx="10" cy="10" r="5" fill="none" stroke="%2306b6d4" stroke-width="0.5" opacity="0.5"/></svg>') 10 10, auto;
+}
+
+button, a, input[type="button"], [role="button"] {
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="3" fill="%2322d3ee"/><circle cx="10" cy="10" r="7" fill="none" stroke="%2322d3ee" stroke-width="1" opacity="0.7"/></svg>') 10 10, pointer;
+}
+
