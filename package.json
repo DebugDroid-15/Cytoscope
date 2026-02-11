@@ -1,0 +1,35 @@
+{
+  "name": "cytoscope",
+  "version": "1.0.0",
+  "description": "CYTOSCOPE: The Evolution of Cellular Intelligence - An immersive educational platform for cytology visualization and AI-driven diagnosis",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "cytology",
+    "visualization",
+    "education",
+    "cellular",
+    "AI"
+  ],
+  "author": "Cytoscope Initiative",
+  "license": "ISC",
+  "dependencies": {
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "@vitejs/plugin-react": "^5.1.4",
+    "autoprefixer": "^10.4.24",
+    "framer-motion": "^12.34.0",
+    "lucide-react": "^0.563.0",
+    "postcss": "^8.5.6",
+    "recharts": "^3.7.0",
+    "tailwindcss": "^4.1.18",
+    "vite": "^7.3.1"
+  }
+}
