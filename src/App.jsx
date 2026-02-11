@@ -1061,7 +1061,7 @@ export default function App() {
                 document.getElementById('timeline').scrollIntoView({ behavior: 'smooth' });
               }}
             >
-              Enter the Microverse
+              ✨ Enter the Microverse
             </motion.button>
 
             <motion.div
